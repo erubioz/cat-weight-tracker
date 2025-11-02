@@ -44,9 +44,9 @@ function App() {
         const cells = row.c;
         return {
           date: cells[0]?.f || cells[0]?.v || '',
-          Maite: cells[1]?.v || null,
-          Benito: cells[2]?.v || null,
-          Gaudí: cells[3]?.v || null,
+          Gaudí: cells[1]?.v || null,
+          Maite: cells[2]?.v || null,
+          Benito: cells[3]?.v || null,
           Cleopatra: cells[4]?.v || null
         };
       }).filter(row => row.date && row.date !== 'Fecha'); // Filter out header and empty rows
