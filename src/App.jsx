@@ -16,7 +16,7 @@ const CAT_INFO = {
   'Maite': { age: '10 años', birthday: '4 de enero', specialNote: '' },
   'Benito': { age: '9 años', birthday: '13 de noviembre', specialNote: 'Dieta renal especial' },
   'Gaudí': { age: '6 años', birthday: '28 de noviembre', specialNote: '' },
-  'Cleopatra': { age: '4 meses', birthday: '2 de noviembre', specialNote: 'La más juguetona' }
+  'Cleopatra': { age: '4 meses', birthday: '2 de julio', specialNote: 'La más juguetona' }
 };
 
 function App() {
