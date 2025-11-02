@@ -9,7 +9,7 @@ const CAT_COLORS = {
   'Maite': '#FF6B9D',
   'Benito': '#4ECDC4',
   'Gaudí': '#FFE66D',
-  'Cleopatra': '#A8E6CF'
+  'Cleopatra': '#6B9BFF'
 };
 
 const CAT_INFO = {
