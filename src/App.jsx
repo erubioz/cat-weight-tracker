@@ -65,63 +65,52 @@ function App() {
   }, []);
 
   const fetchData = async () => {
-    try {
-      // Aggressive cache-busting strategies
-      const timestamp = new Date().getTime();
-      const random = Math.random().toString(36).substring(7);
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}&headers=1&t=${timestamp}&r=${random}`;
+  try {
+    // Cache-busting with timestamp and random (no custom headers to avoid CORS)
+    const timestamp = new Date().getTime();
+    const random = Math.random().toString(36).substring(7);
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}&headers=1&t=${timestamp}&r=${random}`;
+    
+    const response = await fetch(url);
+    const text = await response.text();
+    
+    const jsonData = JSON.parse(text.substring(47).slice(0, -2));
+    
+    const rows = jsonData.table.rows;
+    const formattedData = rows.map(row => {
+      const cells = row.c;
+      const dateStr = cells[0]?.f || cells[0]?.v || '';
       
-      const response = await fetch(url, {
-        method: 'GET',
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-      
-      const text = await response.text();
-      
-      const jsonData = JSON.parse(text.substring(47).slice(0, -2));
-      
-      const rows = jsonData.table.rows;
-      const formattedData = rows.map(row => {
-        const cells = row.c;
-        const dateStr = cells[0]?.f || cells[0]?.v || '';
-        
-        return {
-          date: dateStr,
-          dateObj: parseSheetDate(dateStr),
-          Gaudí: cells[1]?.v || null,
-          Maite: cells[2]?.v || null,
-          Benito: cells[3]?.v || null,
-          Cleopatra: cells[4]?.v || null
-        };
-      }).filter(row => {
-        // Filter out header, empty rows, and invalid dates
-        if (!row.date || row.date === 'Fecha' || !row.dateObj) {
-          return false;
-        }
-        // Filter out future dates (anything after today)
-        const now = new Date();
-        now.setHours(23, 59, 59, 999); // End of today
-        return row.dateObj <= now;
-      });
+      return {
+        date: dateStr,
+        dateObj: parseSheetDate(dateStr),
+        Gaudí: cells[1]?.v || null,
+        Maite: cells[2]?.v || null,
+        Benito: cells[3]?.v || null,
+        Cleopatra: cells[4]?.v || null
+      };
+    }).filter(row => {
+      if (!row.date || row.date === 'Fecha' || !row.dateObj) {
+        return false;
+      }
+      const now = new Date();
+      now.setHours(23, 59, 59, 999);
+      return row.dateObj <= now;
+    });
 
-      formattedData.sort((a, b) => a.dateObj - b.dateObj);
-      
-      console.log('Fetched data:', formattedData.length, 'rows');
-      console.log('Latest entries:', formattedData.slice(-5).map(r => ({date: r.date, Benito: r.Benito})));
-      
-      setData(formattedData);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Error al cargar los datos. Por favor, intenta de nuevo.');
-      setLoading(false);
-    }
-  };
+    formattedData.sort((a, b) => a.dateObj - b.dateObj);
+    
+    console.log('✅ Datos cargados:', formattedData.length, 'registros');
+    console.log('📊 Últimas 3 entradas:', formattedData.slice(-3));
+    
+    setData(formattedData);
+    setLoading(false);
+  } catch (err) {
+    console.error('❌ Error:', err);
+    setError('Error al cargar los datos. Por favor, intenta de nuevo.');
+    setLoading(false);
+  }
+};
 
   const handleSaveWeight = async () => {
     if (!weight || isNaN(parseFloat(weight))) {
