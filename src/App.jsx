@@ -5,9 +5,6 @@ import { Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle, Plus, Save } 
 const SHEET_ID = '1wOd3OH2QwUGBNfzELaevKqKQhAgL6tmROgfqps5sOfk';
 const SHEET_NAME = 'Hoja 1';
 
-// You'll need to replace this with your Apps Script deployment URL
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHm41pp0MB3ooeueRsiWM8mreTkPEQ3HhAI4A3RVhssWtzWkWRKo3SPH7qBZByF2qw/exec';
-
 const CAT_COLORS = {
   'Maite': '#FF6B9D',
   'Benito': '#4ECDC4',
@@ -112,7 +109,8 @@ function App() {
     setSaveMessage('');
 
     try {
-      const response = await fetch(APPS_SCRIPT_URL, {
+      // Use our proxy endpoint instead of calling Apps Script directly
+      const response = await fetch('/api/save-weight', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -334,6 +332,9 @@ function App() {
           </div>
         )}
 
+        {/* Rest of the component remains the same - Cat Cards, Filters, Charts, etc. */}
+        {/* Copying from previous version... */}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {Object.keys(CAT_COLORS).map(cat => {
             const weightChange = getWeightChange(cat);
