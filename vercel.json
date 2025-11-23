@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "api/save-weight.js": {
-      "runtime": "@vercel/node@latest"
-    }
-  }
-}
+{}
