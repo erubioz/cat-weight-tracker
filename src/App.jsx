@@ -19,6 +19,29 @@ const CAT_INFO = {
   'Cleopatra': { age: '4 meses', birthday: '2 de julio', specialNote: '' }
 };
 
+// Helper function to parse dates correctly
+const parseSheetDate = (dateString) => {
+  if (!dateString) return null;
+  
+  // Try DD/MM/YYYY format (e.g., "12/01/2025" = January 12, 2025)
+  const parts = dateString.trim().split('/');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const year = parseInt(parts[2], 10);
+    
+    // Validate the parsed values
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year) && 
+        day >= 1 && day <= 31 && month >= 0 && month <= 11 && year >= 2000) {
+      return new Date(year, month, day);
+    }
+  }
+  
+  // Fallback to standard parsing
+  const fallbackDate = new Date(dateString);
+  return isNaN(fallbackDate.getTime()) ? null : fallbackDate;
+};
+
 function App() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,15 +65,21 @@ function App() {
       const rows = jsonData.table.rows;
       const formattedData = rows.map(row => {
         const cells = row.c;
+        const dateStr = cells[0]?.f || cells[0]?.v || '';
+        
         return {
-          date: cells[0]?.f || cells[0]?.v || '',
+          date: dateStr,
+          dateObj: parseSheetDate(dateStr),
           Gaudí: cells[1]?.v || null,
           Maite: cells[2]?.v || null,
           Benito: cells[3]?.v || null,
           Cleopatra: cells[4]?.v || null
         };
-      }).filter(row => row.date && row.date !== 'Fecha'); // Filter out header and empty rows
+      }).filter(row => row.date && row.date !== 'Fecha' && row.dateObj); // Filter out invalid dates
 
+      // Sort by date
+      formattedData.sort((a, b) => a.dateObj - b.dateObj);
+      
       setData(formattedData);
       setLoading(false);
     } catch (err) {
@@ -72,7 +101,9 @@ function App() {
     if (dateRange === 'all') return data;
     
     const now = new Date();
-    let startDate = new Date();
+    now.setHours(0, 0, 0, 0); // Reset to start of day
+    
+    let startDate = new Date(now);
     
     switch(dateRange) {
       case '1m':
@@ -92,24 +123,7 @@ function App() {
     }
     
     return data.filter(row => {
-      // Parse the date string - try multiple formats
-      let rowDate;
-      
-      // Try parsing DD/MM/YYYY format first (most common in Google Sheets)
-      const parts = row.date.split('/');
-      if (parts.length === 3) {
-        // Assume DD/MM/YYYY format
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JavaScript
-        const year = parseInt(parts[2]);
-        rowDate = new Date(year, month, day);
-      } else {
-        // Fallback to standard Date parsing
-        rowDate = new Date(row.date);
-      }
-      
-      // Check if the date is valid and after startDate
-      return !isNaN(rowDate.getTime()) && rowDate >= startDate;
+      return row.dateObj && row.dateObj >= startDate && row.dateObj <= now;
     });
   };
 
@@ -348,7 +362,7 @@ function App() {
         {/* Footer */}
         <div className="text-center text-gray-600 text-sm">
           <p>💚 Datos actualizados desde Google Sheets</p>
-          <p className="mt-2">Total de registros: {data.length}</p>
+          <p className="mt-2">Total de registros: {data.length} | Mostrando: {filteredData.length}</p>
         </div>
       </div>
     </div>
