@@ -92,8 +92,24 @@ function App() {
     }
     
     return data.filter(row => {
-      const rowDate = new Date(row.date);
-      return rowDate >= startDate;
+      // Parse the date string - try multiple formats
+      let rowDate;
+      
+      // Try parsing DD/MM/YYYY format first (most common in Google Sheets)
+      const parts = row.date.split('/');
+      if (parts.length === 3) {
+        // Assume DD/MM/YYYY format
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JavaScript
+        const year = parseInt(parts[2]);
+        rowDate = new Date(year, month, day);
+      } else {
+        // Fallback to standard Date parsing
+        rowDate = new Date(row.date);
+      }
+      
+      // Check if the date is valid and after startDate
+      return !isNaN(rowDate.getTime()) && rowDate >= startDate;
     });
   };
 
