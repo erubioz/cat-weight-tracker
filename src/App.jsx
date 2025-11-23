@@ -5,6 +5,9 @@ import { Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle, Plus, Save } 
 const SHEET_ID = '1wOd3OH2QwUGBNfzELaevKqKQhAgL6tmROgfqps5sOfk';
 const SHEET_NAME = 'Hoja 1';
 
+// You'll need to replace this with your Apps Script deployment URL
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSa1ULKWXFS4Z4GUi4l57DDb0x9gLfg9TlZf9zstm59Fr1Ze_OgsqhwT_y1NhwDZHXeA/exec';
+
 const CAT_COLORS = {
   'Maite': '#FF6B9D',
   'Benito': '#4ECDC4',
@@ -19,7 +22,6 @@ const CAT_INFO = {
   'Cleopatra': { age: '4 meses', birthday: '2 de julio', specialNote: '' }
 };
 
-// Helper function to parse dates correctly
 const parseSheetDate = (dateString) => {
   if (!dateString) return null;
   
@@ -39,7 +41,6 @@ const parseSheetDate = (dateString) => {
   return isNaN(fallbackDate.getTime()) ? null : fallbackDate;
 };
 
-// Helper function to format date as DD/MM/YYYY
 const formatDate = (date) => {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -111,7 +112,7 @@ function App() {
     setSaveMessage('');
 
     try {
-      const response = await fetch('/api/add-weight', {
+      const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,19 +124,19 @@ function App() {
         })
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (result.success) {
         setSaveMessage('✅ Peso registrado exitosamente');
         setWeight('');
         setShowForm(false);
         
-        // Reload data after 1 second
         setTimeout(() => {
           fetchData();
           setSaveMessage('');
         }, 1000);
       } else {
-        const errorData = await response.json();
-        setSaveMessage('❌ Error al guardar: ' + (errorData.error || 'Error desconocido'));
+        setSaveMessage('❌ Error al guardar: ' + (result.error || 'Error desconocido'));
       }
     } catch (err) {
       console.error('Error saving weight:', err);
@@ -236,7 +237,6 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
             🐱 Control de Peso Gatuno
@@ -244,7 +244,6 @@ function App() {
           <p className="text-gray-600">Seguimiento del peso de Maite, Benito, Gaudí y Cleopatra</p>
         </div>
 
-        {/* Add Weight Button */}
         <div className="mb-6 flex justify-center">
           <button
             onClick={() => setShowForm(!showForm)}
@@ -255,7 +254,6 @@ function App() {
           </button>
         </div>
 
-        {/* Add Weight Form */}
         {showForm && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-8 max-w-2xl mx-auto">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -336,7 +334,6 @@ function App() {
           </div>
         )}
 
-        {/* Cat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {Object.keys(CAT_COLORS).map(cat => {
             const weightChange = getWeightChange(cat);
@@ -396,7 +393,6 @@ function App() {
           })}
         </div>
 
-        {/* Filters */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <div className="flex items-center mb-4">
             <Calendar className="w-5 h-5 text-purple-600 mr-2" />
@@ -425,7 +421,6 @@ function App() {
           </div>
         </div>
 
-        {/* Main Chart */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <h3 className="text-xl font-bold text-gray-800 mb-6">Evolución del peso</h3>
           <ResponsiveContainer width="100%" height={400}>
@@ -466,7 +461,6 @@ function App() {
           </ResponsiveContainer>
         </div>
 
-        {/* Individual Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {selectedCats.map(cat => {
             const catData = filteredData.filter(row => row[cat] !== null);
@@ -508,7 +502,6 @@ function App() {
           })}
         </div>
 
-        {/* Footer */}
         <div className="text-center text-gray-600 text-sm">
           <p>💚 Datos actualizados desde Google Sheets</p>
           <p className="mt-2">Total de registros: {data.length} | Mostrando: {filteredData.length}</p>
