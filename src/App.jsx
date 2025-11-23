@@ -6,7 +6,7 @@ const SHEET_ID = '1wOd3OH2QwUGBNfzELaevKqKQhAgL6tmROgfqps5sOfk';
 const SHEET_NAME = 'Hoja 1';
 
 // You'll need to replace this with your Apps Script deployment URL
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSa1ULKWXFS4Z4GUi4l57DDb0x9gLfg9TlZf9zstm59Fr1Ze_OgsqhwT_y1NhwDZHXeA/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHm41pp0MB3ooeueRsiWM8mreTkPEQ3HhAI4A3RVhssWtzWkWRKo3SPH7qBZByF2qw/exec';
 
 const CAT_COLORS = {
   'Maite': '#FF6B9D',
