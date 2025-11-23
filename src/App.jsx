@@ -66,10 +66,21 @@ function App() {
 
   const fetchData = async () => {
     try {
-      // Add timestamp to bypass Google Sheets cache
+      // Aggressive cache-busting strategies
       const timestamp = new Date().getTime();
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}&t=${timestamp}`;
-      const response = await fetch(url);
+      const random = Math.random().toString(36).substring(7);
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}&headers=1&t=${timestamp}&r=${random}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
       const text = await response.text();
       
       const jsonData = JSON.parse(text.substring(47).slice(0, -2));
@@ -87,9 +98,21 @@ function App() {
           Benito: cells[3]?.v || null,
           Cleopatra: cells[4]?.v || null
         };
-      }).filter(row => row.date && row.date !== 'Fecha' && row.dateObj);
+      }).filter(row => {
+        // Filter out header, empty rows, and invalid dates
+        if (!row.date || row.date === 'Fecha' || !row.dateObj) {
+          return false;
+        }
+        // Filter out future dates (anything after today)
+        const now = new Date();
+        now.setHours(23, 59, 59, 999); // End of today
+        return row.dateObj <= now;
+      });
 
       formattedData.sort((a, b) => a.dateObj - b.dateObj);
+      
+      console.log('Fetched data:', formattedData.length, 'rows');
+      console.log('Latest entries:', formattedData.slice(-5).map(r => ({date: r.date, Benito: r.Benito})));
       
       setData(formattedData);
       setLoading(false);
@@ -111,7 +134,6 @@ function App() {
     setSaveMessage('');
 
     try {
-      // Use our proxy endpoint
       const response = await fetch('/api/save-weight', {
         method: 'POST',
         headers: {
@@ -131,11 +153,11 @@ function App() {
         setWeight('');
         setShowForm(false);
         
-        // Wait 2 seconds before reloading to give Google Sheets time to update
+        // Wait 3 seconds before reloading to give Google Sheets time to update
         setTimeout(() => {
           fetchData();
           setSaveMessage('');
-        }, 2000);
+        }, 3000);
       } else {
         setSaveMessage('❌ Error al guardar: ' + (result.error || 'Error desconocido'));
       }
