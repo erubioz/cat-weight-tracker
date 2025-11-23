@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react';
+import { Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle, Plus, Save } from 'lucide-react';
 
 const SHEET_ID = '1wOd3OH2QwUGBNfzELaevKqKQhAgL6tmROgfqps5sOfk';
 const SHEET_NAME = 'Hoja 1';
@@ -23,23 +23,28 @@ const CAT_INFO = {
 const parseSheetDate = (dateString) => {
   if (!dateString) return null;
   
-  // Try DD/MM/YYYY format (e.g., "12/01/2025" = January 12, 2025)
   const parts = dateString.trim().split('/');
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const month = parseInt(parts[1], 10) - 1;
     const year = parseInt(parts[2], 10);
     
-    // Validate the parsed values
     if (!isNaN(day) && !isNaN(month) && !isNaN(year) && 
         day >= 1 && day <= 31 && month >= 0 && month <= 11 && year >= 2000) {
       return new Date(year, month, day);
     }
   }
   
-  // Fallback to standard parsing
   const fallbackDate = new Date(dateString);
   return isNaN(fallbackDate.getTime()) ? null : fallbackDate;
+};
+
+// Helper function to format date as DD/MM/YYYY
+const formatDate = (date) => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 };
 
 function App() {
@@ -48,6 +53,14 @@ function App() {
   const [selectedCats, setSelectedCats] = useState(['Maite', 'Benito', 'Gaudí', 'Cleopatra']);
   const [dateRange, setDateRange] = useState('all');
   const [error, setError] = useState(null);
+  
+  // Form state
+  const [showForm, setShowForm] = useState(false);
+  const [selectedCat, setSelectedCat] = useState('Gaudí');
+  const [weight, setWeight] = useState('');
+  const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -59,7 +72,6 @@ function App() {
       const response = await fetch(url);
       const text = await response.text();
       
-      // Remove the prefix to get valid JSON
       const jsonData = JSON.parse(text.substring(47).slice(0, -2));
       
       const rows = jsonData.table.rows;
@@ -75,9 +87,8 @@ function App() {
           Benito: cells[3]?.v || null,
           Cleopatra: cells[4]?.v || null
         };
-      }).filter(row => row.date && row.date !== 'Fecha' && row.dateObj); // Filter out invalid dates
+      }).filter(row => row.date && row.date !== 'Fecha' && row.dateObj);
 
-      // Sort by date
       formattedData.sort((a, b) => a.dateObj - b.dateObj);
       
       setData(formattedData);
@@ -86,6 +97,52 @@ function App() {
       console.error('Error fetching data:', err);
       setError('Error al cargar los datos. Por favor, intenta de nuevo.');
       setLoading(false);
+    }
+  };
+
+  const handleSaveWeight = async () => {
+    if (!weight || isNaN(parseFloat(weight))) {
+      setSaveMessage('Por favor ingresa un peso válido');
+      setTimeout(() => setSaveMessage(''), 3000);
+      return;
+    }
+
+    setSaving(true);
+    setSaveMessage('');
+
+    try {
+      const response = await fetch('/api/add-weight', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: selectedDate,
+          cat: selectedCat,
+          weight: parseFloat(weight)
+        })
+      });
+
+      if (response.ok) {
+        setSaveMessage('✅ Peso registrado exitosamente');
+        setWeight('');
+        setShowForm(false);
+        
+        // Reload data after 1 second
+        setTimeout(() => {
+          fetchData();
+          setSaveMessage('');
+        }, 1000);
+      } else {
+        const errorData = await response.json();
+        setSaveMessage('❌ Error al guardar: ' + (errorData.error || 'Error desconocido'));
+      }
+    } catch (err) {
+      console.error('Error saving weight:', err);
+      setSaveMessage('❌ Error al guardar el peso');
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaveMessage(''), 5000);
     }
   };
 
@@ -101,7 +158,7 @@ function App() {
     if (dateRange === 'all') return data;
     
     const now = new Date();
-    now.setHours(0, 0, 0, 0); // Reset to start of day
+    now.setHours(0, 0, 0, 0);
     
     let startDate = new Date(now);
     
@@ -186,6 +243,98 @@ function App() {
           </h1>
           <p className="text-gray-600">Seguimiento del peso de Maite, Benito, Gaudí y Cleopatra</p>
         </div>
+
+        {/* Add Weight Button */}
+        <div className="mb-6 flex justify-center">
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            {showForm ? 'Cancelar' : 'Registrar Peso'}
+          </button>
+        </div>
+
+        {/* Add Weight Form */}
+        {showForm && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8 max-w-2xl mx-auto">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Save className="w-5 h-5" />
+              Registrar nuevo peso
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha
+                </label>
+                <input
+                  type="text"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  placeholder="DD/MM/YYYY"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Formato: DD/MM/YYYY (ej: 23/11/2025)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Gato
+                </label>
+                <select
+                  value={selectedCat}
+                  onChange={(e) => setSelectedCat(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                >
+                  {Object.keys(CAT_COLORS).map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Peso (kg)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="ej: 3.50"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                />
+              </div>
+
+              <button
+                onClick={handleSaveWeight}
+                disabled={saving}
+                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Registrar
+                  </>
+                )}
+              </button>
+
+              {saveMessage && (
+                <div className={`p-3 rounded-lg text-center ${
+                  saveMessage.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {saveMessage}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Cat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
