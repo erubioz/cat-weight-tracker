@@ -66,7 +66,9 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
+      // Add timestamp to bypass Google Sheets cache
+      const timestamp = new Date().getTime();
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}&t=${timestamp}`;
       const response = await fetch(url);
       const text = await response.text();
       
@@ -109,7 +111,7 @@ function App() {
     setSaveMessage('');
 
     try {
-      // Use our proxy endpoint instead of calling Apps Script directly
+      // Use our proxy endpoint
       const response = await fetch('/api/save-weight', {
         method: 'POST',
         headers: {
@@ -129,10 +131,11 @@ function App() {
         setWeight('');
         setShowForm(false);
         
+        // Wait 2 seconds before reloading to give Google Sheets time to update
         setTimeout(() => {
           fetchData();
           setSaveMessage('');
-        }, 1000);
+        }, 2000);
       } else {
         setSaveMessage('❌ Error al guardar: ' + (result.error || 'Error desconocido'));
       }
@@ -332,9 +335,6 @@ function App() {
           </div>
         )}
 
-        {/* Rest of the component remains the same - Cat Cards, Filters, Charts, etc. */}
-        {/* Copying from previous version... */}
-        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {Object.keys(CAT_COLORS).map(cat => {
             const weightChange = getWeightChange(cat);
